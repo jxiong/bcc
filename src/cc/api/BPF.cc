@@ -19,6 +19,7 @@
 #include <unistd.h>
 #include <cstdio>
 #include <cstring>
+#include <fstream>
 #include <exception>
 #include <iostream>
 #include <memory>
@@ -55,10 +56,20 @@ std::string sanitize_str(std::string str, bool (*validator)(char),
   return str;
 }
 
-StatusTuple BPF::init(const std::string& bpf_program,
+StatusTuple BPF::init(const std::string& program,
                       const std::vector<std::string>& cflags,
                       const std::vector<USDT>& usdt) {
   std::string all_bpf_program;
+  std::string bpf_program(program);
+
+  auto pos = program.rfind(".c");
+  if (pos == program.size() - 2) { /* probably a c file */
+    std::ifstream ifs(program);
+    if (ifs.is_open())
+      bpf_program.assign(std::istreambuf_iterator<char>(ifs), std::istreambuf_iterator<char>());
+    else
+      std::cerr << "open file failed: " << strerror(errno) << "\n";
+  }
 
   usdt_.reserve(usdt.size());
   for (const auto& u : usdt) {
@@ -79,7 +90,7 @@ StatusTuple BPF::init(const std::string& bpf_program,
     return StatusTuple(-1, "Unable to initialize BPF program");
 
   return StatusTuple(0);
-};
+}
 
 BPF::~BPF() {
   auto res = detach_all();

@@ -36,7 +36,7 @@ BPF_CGROUP_ARRAY(cgroup, 1);
 
 int on_vfs_open(struct pt_regs *ctx, struct path *path) {
   if (cgroup.check_current_task(0) > 0)
-    bpf_trace_printk("file '%s' was opened!\n", path->dentry->d_name.name);
+    bpf_trace_printk("file '%s' was opened: %d!\n", path->dentry->d_name.name, bpf_get_current_cgroup_id());
   return 0;
 }
 )";
